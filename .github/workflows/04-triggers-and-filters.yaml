@@ -1,0 +1,15 @@
+name: Triggers Events 
+
+on:
+  push: 
+    branches:
+      - "main" 
+      - "test-actions"
+  pull_request:
+    types:
+      - opened 
+      - reopend 
+      - synchronize
+    paths:
+      - "/home/dell/devops-practice-lab/.github"
+      - "/home/dell/devops-practice-lab/README.md"
