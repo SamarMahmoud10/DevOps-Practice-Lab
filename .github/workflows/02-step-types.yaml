@@ -1,6 +1,6 @@
 name: Step Types
 
-on: 
+on:
   workflow_dispatch:
 
 jobs:
@@ -8,16 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Hello, World"
-  
+
   Say-Hello-Inline-Python:
     runs-on: ubuntu-latest
     steps:
       - run: print("Hello, World")
-        shell: python 
+        shell: python
 
   Say-Hello-Action:
     runs-on: ubuntu-latest
     steps:
-      uses: actions/hello-world--javascript-action
-      with:
-        who-to-greeat: "World"
+      - uses: actions/hello-world-javascript-action@v1
+        with:
+          who-to-greet: "World"
