@@ -12,7 +12,7 @@ on:
       - synchronize
     paths:
       - '.github/**'
-      - 'README.md'
+      - '!README.md'
   
   schedule:
     - cron: "0 0 * * *" # Midnight 
