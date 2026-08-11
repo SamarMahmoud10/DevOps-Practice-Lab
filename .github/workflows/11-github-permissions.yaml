@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: read # Can read PR data only
-    continue-on-error: true # Avoids failing entire workflow
+    continue-on-error: true # Avoids failing entire workflow After Failure 
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
       
