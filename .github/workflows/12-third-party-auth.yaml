@@ -1,0 +1,43 @@
+name: Third Party Auth
+on:
+  workflow_dispatch:
+
+jobs:
+  ##################################################
+  # ❌ APPROACH 1: STATIC CREDENTIALS (NOT RECOMMENDED)
+  # Requires creating long-lived AWS keys and storing them in GitHub Secrets.
+  ##################################################
+  auth-to-aws-static:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: "Configure AWS Credentials using static key"
+        uses: aws-actions/configure-aws-credentials@v4.3.1
+        with:
+          # ادخل هنا كود المنطقة الجغرافية لسيرفر أمازون (مثال: us-east-1)
+          aws-region: <YOUR_AWS_REGION>
+          
+          # ادخل هنا المعرف الثابت المأخوذ من الـ AWS Secrets
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          
+          # ادخل هنا مفتاح السر الثابت المأخوذ من الـ AWS Secrets
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  ##################################################
+  # ✅ APPROACH 2: OIDC AUTHENTICATION (RECOMMENDED)
+  # Highly secure. Uses temporary short-lived keys via OpenID Connect.
+  ##################################################
+  auth-to-aws-oidc:
+    runs-on: ubuntu-24.04
+    permissions:
+      # سطر إجباري لمنح السيرفر صلاحية توليد بطاقة هوية مؤقتة (JWT Token) يوريها لأمازون
+      id-token: write 
+    steps:
+      - name: "Configure AWS Credentials - Action for GitHub Actions"
+        uses: aws-actions/configure-aws-credentials@v4.3.1
+        with:
+          # ادخل هنا كود المنطقة الجغرافية لسيرفر أمازون (مثال: us-east-1)
+          aws-region: <YOUR_AWS_REGION>
+          
+          # ادخل هنا عنوان الـ Role الـ (ARN) اللي عملتها جوه حسابك في أمازون وثق في ريبو جيت هاب بتاعك
+          # مثال: arn:aws:iam::123456789012:role/github-actions-role
+          role-to-assume: <YOUR_AWS_IAM_ROLE_ARN>
