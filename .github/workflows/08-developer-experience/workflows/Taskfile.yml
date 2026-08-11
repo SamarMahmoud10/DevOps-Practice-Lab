@@ -1,0 +1,6 @@
+version: '3'
+
+tasks:
+  hello-world-task: 
+    cmds:
+      - echo "Hello from an external task!"

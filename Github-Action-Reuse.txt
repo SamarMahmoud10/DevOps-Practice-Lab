@@ -1,0 +1,82 @@
+# Part 1: Reusable Workflows
+
+### Core Concept:
+This file acts exactly like a Function in programming. The main idea is to write the workflow logic once and allow other files (Caller Workflows) to call and reuse it with different inputs. This avoids code repetition. It also demonstrates a clever way to dynamically inherit parameters and secrets from specific GitHub Environments.
+
+### Line-by-Line Explanation:
+* name: Reusable Workflow Source: Defines the name of the workflow as it appears in the GitHub Actions dashboard tab.
+* on: workflow_call:: Defines the trigger. The keyword workflow_call means this file cannot run on its own (e.g., on a code push). It can only be triggered when invoked by another workflow file.
+* inputs:: Begins the definition of standard parameters (inputs) that the caller workflow must provide when executing this file.
+* foo: required: true type: string: Declares an input named foo. It is mandatory (required: true) and expects a text value (type: string).
+* environment:: Declares another mandatory input named environment. It includes a helpful description explaining its purpose: specifying the target GitHub deployment environment (e.g., staging or production).
+* secrets:: Begins the definition of sensitive variables (secrets) required by this reusable workflow.
+* # NOTE: You can only pass repo/org secrets here...: A critical structural reminder: Under this specific secrets: block, you can only declare and accept secrets defined at the Repository or Organization level. Environment-specific secrets cannot be directly mapped here.
+* EXAMPLE_REPOSITORY_SECRET: required: true: The name of the mandatory repository-level secret that must be explicitly passed by the caller.
+* jobs: reusable-workflow-job:: Initiates the block of execution tasks. This specific job is named reusable-workflow-job.
+* environment: ${{ inputs.environment }}: This is the clever trick of the file. By dynamically binding this job to a GitHub Environment using the user's input (inputs.environment), GitHub automatically grants this job native access to all variables and secrets configured inside that specific environment.
+* runs-on: ubuntu-24.04: Specifies the operating system and runner version executing the tasks. Here, it provisions an ubuntu-24.04 virtual machine.
+* steps: - name: job in reusable workflow: Starts the step-by-step execution list inside the job. The first step is titled "job in reusable workflow".
+* env:: Defines local environment variables inside the Ubuntu runner shell for the current step to utilize.
+* FOO: ${{ inputs.foo }}: Maps the incoming input value of foo into a local shell variable named $FOO.
+* EXAMPLE_REPOSITORY_SECRET: ${{ secrets.EXAMPLE_REPOSITORY_SECRET }}: Maps the explicitly passed repository secret into a local shell variable.
+* EXAMPLE_ENVIRONMENT_SECRET: ${{ secrets.EXAMPLE_ENVIRONMENT_SECRET }}: This is where the environment binding pays off. Because the job was contextualized to the specific environment above, GitHub dynamically fetches this environment-scoped secret without requiring the caller workflow to pass it explicitly.
+* EXAMPLE_ENVIRONMENT_VARIABLE: ${{ vars.EXAMPLE_ENVIRONMENT_VARIABLE }}: Dynamically fetches a standard configuration variable belonging to the targeted environment.
+* run: |: The pipe symbol | allows writing multi-line script commands. The following echo commands print out the local variables to verify they are being read correctly. (Note: Sensitive values will automatically be masked as *** in the logs by GitHub for safety).
+
+
+# Part 2: JavaScript & TypeScript Custom Actions
+
+### Core Concept:
+This workflow teaches you how to author, structure, and test your own Custom Actions locally inside your project. Specifically, it compares 3 distinct philosophies regarding programming languages and how to handle dependencies like the node_modules folder.
+
+### Key Lessons & Differences:
+1. JS vs. TS: Actions written in TypeScript must eventually be compiled (built) into plain JavaScript. GitHub's native environment executes JavaScript directly using a Node.js runner.
+2. The Build vs. No Build Dilemma: 
+   - In a No Build approach, you must commit the entire node_modules folder to your Git repository so the action can find its external packages. This bloats the repository size.
+   - In a With Build approach, you use bundling tools (like @vercel/ncc or Webpack) to compile your code and all its dependencies into one single compressed file (usually dist/index.js). This keeps your repository clean and makes the action load much faster.
+3. Local Actions: It teaches you that when using a custom action stored inside your own repository instead of the public marketplace, you reference it using a relative path starting with a dot-slash ./ (e.g., uses: ./06-authoring-actions/...).
+
+### Line-by-Line Explanation:
+* name: Javascript Actions: Sets the visible name of the workflow in the GitHub UI.
+* on: workflow_dispatch:: Configures a manual trigger. It displays a "Run workflow" button on GitHub, letting you run this file on-demand.
+* jobs: javascript-no-build: runs-on: ubuntu-latest: Starts the first job on the latest Ubuntu runner. This job tests a JavaScript action that runs raw code without any pre-compilation or bundling steps.
+* steps: - name: Checkout uses: actions/checkout@...: The mandatory first step to clone and download your repository files onto the runner so that the system can access the local actions folders.
+* - name: Run javascript action uses: ./06-authoring-actions/.../javascript-action-no-build: Executes the local "No Build" JavaScript action by pointing to its exact relative directory.
+* id: hello: Assigns a unique identifier (id) to this step, allowing subsequent steps to query and read data generated by this action.
+* with: who-to-greet: "from a javascript github action 👋": Passes a required parameter named who-to-greet to the action.
+* - name: Get the output time run: echo "The time was ${{ steps.hello.outputs.time }}": Prints a log message extracting the time output parameter produced by the hello step action.
+* javascript-with-build:: The second job. It tests a JavaScript action where all dependencies have been cleanly bundled into a single distribution file beforehand.
+* with: submodules: true: During this checkout step, it explicitly pulls any Git Submodules linked to the project in case the action depends on external repository codebases.
+* typescript: runs-on: ubuntu-latest: The third and final job. It tests a custom action written originally in TypeScript (compiled down to JavaScript for production).
+* uses: ./06-authoring-actions/.../typescript-action-with-build: Invokes the compiled TypeScript action from its local directory.
+* with: milliseconds: 5000: Passes a unique numeric input required by this specific action (e.g., instructing the action to execute a 5-second wait timer).
+* run: echo "The time was ${{ steps.hello.outputs.time }}": Logs out the execution time output generated upon completion of the TypeScript action.
+
+
+# Part 3: Docker Container Actions
+
+### Core Concept:
+While the previous tutorial focuses on JavaScript-based environments, this file teaches you how to build custom actions wrapped entirely inside a Docker Container. By utilizing Docker, you are no longer limited to Node.js; you can write custom actions using any programming language you want (like Python, Go, or complex Bash scripts). Docker ensures that the action packages its own environment, guaranteeing it runs identically on any runner machine.
+
+### Key Lessons & Differences:
+1. Dynamic Build (shell-dockerfile): GitHub compiles and builds the Docker image from a local Dockerfile on the fly at the exact moment the workflow runs. The downside is that this adds build-time overhead (1-2 minutes) to every run.
+2. Pre-built Image (shell-public-container-image): To optimize performance, the action bypasses local compiling and references a pre-baked Docker image hosted publicly online (e.g., Docker Hub or GitHub Packages). This is lightning fast because the runner only needs to pull and run it.
+3. Polyglot Support (python-dockerfile): Demonstrates that Python scripts can easily act as custom GitHub Actions as long as a Dockerfile sets up the Python runtime environment inside the container.
+
+### Line-by-Line Explanation:
+* name: Container Actions: Labels the workflow run in the GitHub actions interface.
+* on: workflow_dispatch:: Enables manual triggering via the web interface.
+* jobs: shell-dockerfile: runs-on: ubuntu-latest: Begins the first job, testing a Shell/Bash script action packaged inside a Dockerfile that must be compiled dynamically.
+* steps: - name: Checkout uses: actions/checkout@... with: submodules: true: Clones the repository and its associated Git submodules.
+* - name: Run container action uses: ./06-authoring-actions/container-actions/shell-container-action: Triggers the local container action. Under the hood, GitHub reads the action.yml file in that folder, triggers docker build, and spins up the environment.
+* id: hello with: who-to-greet: ...: Assigns a step ID and feeds the text greeting into the Docker container.
+* - name: Get the output greeting run: echo "The greeting was ${{ steps.hello.outputs.greeting }}": Retrieves and prints out the final greeting output string passed back out from the container environment.
+* shell-public-container-image:: The second job. It runs an identical shell script action, but relies on a pre-built public container image to skip the time-consuming compilation phase.
+* uses: ./06-authoring-actions/container-actions/shell-container-action-prebuilt: Calls the pre-optimized variation of the local action, executing the greeting logic instantly.
+* python-dockerfile:: The final job, proving that languages like Python can easily run inside a workflow via container abstraction.
+
+Final Summary Comparison:JavaScript Actions:
+Extremely fast initialization since they run directly on GitHub's base runner machine. However, 
+they restrict you entirely to the Node.js language ecosystem.Docker Container Actions: Offer infinite flexibility,
+allowing you to use any language (Python, Go, Bash) or OS tools. However, 
+they incur slight startup overhead and only run on Linux-based runners (Windows and macOS runners are not supported).
