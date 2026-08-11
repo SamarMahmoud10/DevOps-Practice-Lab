@@ -1,8 +1,8 @@
 name: Github Permision
 # Permissions can be defined at the workflow or job level
 on: 
-  workflow-dispatch:
-
+  workflow_dispatch:
+  
 jobs:
   read-only-pr:
     runs-on: ubuntu-24.04
