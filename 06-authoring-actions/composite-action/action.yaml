@@ -1,0 +1,31 @@
+name: "My Custom Hello World Composite Action"
+description: "Greets someone and returns a random number"
+
+# 1) تعريف المدخلات اللي الأكشن هيستقبلها من بره
+inputs:
+  who-to-greet:
+    description: "Who do you want to greet?"
+    required: true
+    default: "World"
+
+# 2) تعريف المخرجات اللي الأكشن هيبعتها بره بعد ما يخلص
+outputs:
+  random-number:
+    description: "A generated random number"
+    value: ${{ steps.generate-number.outputs.random }}
+
+# 3) الخطوات الفعلية المجمعة اللي الأكشن هيعملها في الخلفية
+runs:
+  using: "composite" # السطر ده هو اللي بيفهم جيت هاب إن ده Composite Action
+  steps:
+    - name: Print the greeting message
+      shell: bash # في الـ Composite Action، تحديد الـ shell إجباري في كل خطوة run
+      run: |
+        echo "Hello, ${{ inputs.who-to-greet }}"
+
+    - name: Generate random number step
+      id: generate-number
+      shell: bash
+      run: |
+        # توليد رقم عشوائي بين 1 و 100 وتصديره لـ مخرجات الخطوة
+        echo "random=$((RANDOM % 100 + 1))" >> "$GITHUB_OUTPUT"
