@@ -1,4 +1,4 @@
-name: Permision
+name: Github Permision
 # Permissions can be defined at the workflow or job level
 on: 
   workflow-dispatch:
